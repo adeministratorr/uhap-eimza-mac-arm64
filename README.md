@@ -46,6 +46,32 @@ arm64 paketini kurun.
 
 Loglar: `~/Library/Logs/UHAPImza/log.out`
 
+## UHAP-CMK (cmk.uhap.com.tr) için kurulum
+
+CMK imzalama ekranı, UHAP ana sitesinden **farklı** bir ortam ve **farklı bir
+port** kullanır. Varsayılan kurulum (`uhap.com.tr`, port 8080) CMK'da çalışmaz;
+imzala butonu "imzalama aracının açık olduğundan emin olunuz" hatası verir.
+CMK için `MODE=cmk` ile derleyin:
+
+```bash
+MODE=cmk ./kur.sh        # ya da: make install MODE=cmk
+```
+
+| | `MODE=uhap` (varsayılan) | `MODE=cmk` |
+|---|---|---|
+| Site | uhap.com.tr | cmk.uhap.com.tr |
+| Ortam (jar argümanı) | `uhap-prod` | `ocas-prod` |
+| Yerel port | 8080 | 5085 (jar'daki sabit derleme sırasında yamalanır) |
+| Görünür imza yaması | kapalı (`PATCH_VISIBLE_SIG=1` ile açılır) | açık |
+
+İki mod aynı anda çalışmaz (aynı uygulama adı); birini kurunca diğerinin yerine geçer.
+
+**Chrome "yerel ağ erişimi" izni:** Yeni Chrome sürümleri, HTTPS bir siteden
+`localhost`'a isteği izin verilmedikçe engeller; bu durumda istek uygulamaya hiç
+ulaşmaz (log'a düşmez). `chrome://settings/content/localNetworkAccess` sayfasında
+`https://cmk.uhap.com.tr` (ve ana site için `https://uhap.com.tr`) adresini
+**İzin verilen** listesine ekleyin.
+
 ## Teknik özet
 
 - **jpackage + Zulu 11 arm64**: `.app` içine gömülü runtime (HiDPI/Retina).
