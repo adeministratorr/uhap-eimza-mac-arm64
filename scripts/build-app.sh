@@ -6,6 +6,12 @@ JPACKAGE="${JPACKAGE:-jpackage}"
 APPNAME="UHAPImza"
 DISPLAYNAME="UHAP İmzalama"
 DEST="$ROOT/build"
+MODE="${MODE:-uhap}"
+case "$MODE" in
+  uhap) APPARG="uhap-prod" ;;
+  cmk)  APPARG="ocas-prod" ;;   # UHAP-CMK (cmk.uhap.com.tr)
+  *) echo "HATA: MODE uhap veya cmk olmali (gelen: $MODE)" >&2; exit 1 ;;
+esac
 
 test -d "$ROOT/build/app" || { echo "build/app yok — önce prep çalıştır"; exit 1; }
 test -x "$RUNTIME/bin/java" || { echo "runtime yok — önce make jre"; exit 1; }
@@ -17,7 +23,7 @@ rm -rf "$DEST/$APPNAME.app"
   --input "$ROOT/build/app" \
   --main-jar Ard.ESignature.jar \
   --main-class root.App \
-  --arguments uhap-prod \
+  --arguments "$APPARG" \
   --runtime-image "$RUNTIME" \
   --icon "$ROOT/assets/UHAPImza.icns" \
   --java-options "-Duser.dir=\$APPDIR" \

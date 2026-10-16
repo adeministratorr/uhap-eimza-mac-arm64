@@ -1,5 +1,9 @@
 SHELL := /bin/bash
 ROOT := $(shell pwd)
+# MODE=uhap (varsayılan): uhap.com.tr, port 8080
+# MODE=cmk: UHAP-CMK (cmk.uhap.com.tr), port 5085
+MODE ?= uhap
+export MODE
 CACHE := $(ROOT)/.jre-cache
 BUILD := $(ROOT)/build
 APPNAME := UHAPImza

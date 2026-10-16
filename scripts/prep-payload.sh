@@ -29,6 +29,32 @@ rm -f "$DST/sunpkcs11.jar"
 # FileNotFoundException: .../Contents/app/certval-policy.xml).
 cp "$DST"/config/*.xml "$DST"/
 
+# 2c) MODE=cmk: HTTP_SERVER_PORT 8080 -> 5085. UHAP-CMK sayfası imzalama aracını
+# http://localhost:5085/imza adresinden çağırır; jar ise 8080'e sabitlenmiştir.
+# contacts/constants.<clinit>: sipush 8080 (11 1F 90) + putstatic (B3 00 BB)
+# -> sipush 5085 (11 13 DD)
+MODE="${MODE:-uhap}"
+if [ "$MODE" = "cmk" ]; then
+  python3 -I - "$TMP" "$DST/Ard.ESignature.jar" <<'PYEOF'
+import sys, zipfile, os, subprocess
+tmp, jar = sys.argv[1], sys.argv[2]
+name = "contacts/constants.class"
+with zipfile.ZipFile(jar) as z:
+    data = z.read(name)
+old = bytes([0x11, 0x1F, 0x90, 0xB3, 0x00, 0xBB])
+new = bytes([0x11, 0x13, 0xDD, 0xB3, 0x00, 0xBB])
+if data.count(old) != 1:
+    sys.exit("HATA: port yamasi eslesmedi (count=%d)" % data.count(old))
+path = os.path.join(tmp, name)
+os.makedirs(os.path.dirname(path), exist_ok=True)
+open(path, "wb").write(data.replace(old, new))
+subprocess.check_call(["zip", "-q", jar, name], cwd=tmp)
+print("port yamasi OK: 8080 -> 5085")
+PYEOF
+  # CMK görünür imza ister; yama varsayılan açık
+  : "${PATCH_VISIBLE_SIG:=1}"
+fi
+
 # 3) (opsiyonel) görünür imza yolundaki ölü Windows yazımını kaldır
 if [ "${PATCH_VISIBLE_SIG:-0}" = "1" ]; then
   "$ROOT/scripts/patch-visible-signature.sh"
