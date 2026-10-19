@@ -1,3 +1,42 @@
+# UHAP İmzalama — macOS Apple Silicon (M1/M2/M3/M4) Kurulumu (arm64)
+
+UHAP e-imza aracını **MacBook, MacBook Pro, MacBook Air, Mac mini ve iMac**'de native çalıştırın. Apple Silicon (M serisi, ARM tabanlı işlemci) için native `.app`; gömülü arm64 Java 11 — Rosetta gerekmez, ayrı Java kurulumu gerekmez.
+
+**Kimler için:** uhap.com.tr ve cmk.uhap.com.tr üzerinden e-imza ile işlem yapan **avukatlar** (özellikle baro CMK görevlendirmeleri), icra ve hukuk süreçlerinde UHAP imzalama kullanan hukuk profesyonelleri.
+
+## Kimler için?
+- **Avukatlar:** uhap.com.tr üzerinden belge imzalayanlar.
+- **CMK görevlendirmeleri yapan avukatlar:** cmk.uhap.com.tr akışı için `MODE=cmk` kurulumu (aşağıda).
+- **Hukuk büroları:** MacBook (M1/M2/M3/M4) ve iMac ile e-imza kurulumu.
+- **İcra ve dava süreçleri:** UHAP üzerinden e-imza gerektiren tüm hukuk işlemleri.
+
+## "Mac'te e-imza çalışmıyor" arayanlar için kısa cevaplar
+- **Neden Mac'te çalışmıyor?** Aracın Windows sürümü dağıtılıyor; Mac kurulumu yok. Bu port, aracı arm64 Mac'te native çalıştırır.
+- **MacBook / MacBook Pro / MacBook Air / iMac / Mac mini'de çalışır mı?** Evet — Apple Silicon (M1/M2/M3/M4). Intel desteklenmez.
+- **Rosetta veya Java kurmam gerekir mi?** Hayır; ARM native (arm64), Java gömülü.
+- **İmza için ek olarak ne gerekir?** e-imza kartı + kart okuyucu + **arm64 AKİS sürücüsü** (aşağıda).
+
+## Neden Mac'te çalışmıyordu? Nasıl çözdük?
+
+- **Sorun:** UHAP e-imza aracının Mac sürümü yoktu; Windows kurulumu ise Mac'te çalışmıyordu.
+- **Neden:** Java tabanlı uygulama Windows'a özgü yollarla çalışıyordu: config dosyası Windows düzenine göre okunuyor, log yolu yazılamıyor ve yerel imza sunucusu sabit port kullanıyordu.
+- **Çözüm:** `jpackage` + gömülü **arm64 Java 11** ile native `.app`; config `-Duser.dir` ile paket içinden okundu, yazılabilir log yolu verildi, ASCII yürütücü adı + ad-hoc imza uygulandı. CMK (cmk.uhap.com.tr) için `MODE=cmk` ile ayrı ortam/port derlemesi eklendi.
+- **Doğrulama:** Gerçek AKİS kartı ile RSA-2048 imza uçtan uca doğrulandı.
+
+## Kurulum (3 yol)
+1. **Tek satır (kaynaktan derler):** aşağıdaki "Kurulum (tek komut)" bölümü.
+2. **Homebrew cask (hazır DMG, derleme beklemez):**
+
+```bash
+brew install --cask adeministratorr/tap/uhap-eimza
+```
+
+3. **Hazır DMG:** [Releases](../../releases) → `UhapEimza-arm64-*.dmg`
+
+Diğer araçlar (aynı tap): [e-Devlet E-İmza](https://github.com/adeministratorr/edevlet-eimza-mac-arm64) · [PTT KEP Webmail](https://github.com/adeministratorr/pttkep-eimza-mac-arm64) · [PTT UETS / e-Tebligat](https://github.com/adeministratorr/uets-eimza-mac-arm64) · [TNB Teknoloji İmza](https://github.com/adeministratorr/tnb-eimza-mac-arm64) · [UDF QuickLook](https://github.com/adeministratorr/udf-quicklook-extension) · [UYAP Doküman Editörü](https://github.com/adeministratorr/ude-mac-arm64-1)
+
+---
+
 # UHAP İmzalama — macOS (Apple Silicon) Portu
 
 UHAP e-imza aracının (ARDGRUP/ImzaTek tabanlı) Apple Silicon Mac'ler için
