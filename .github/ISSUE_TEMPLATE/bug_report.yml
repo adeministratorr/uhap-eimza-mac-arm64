@@ -1,0 +1,74 @@
+name: Hata raporu
+description: Kurulum veya çalışma sorunu bildirin (PIN, kart seri no ve T.C. kimlik paylaşmayın)
+title: "[Hata] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Önce README'deki **İlk kez kuranlar için** bölümünü uygulayın. Normal UHAP ile **CMK** akışı ayrı modlardır; doğru modu kurduğunuzdan emin olun.
+        **Paylaşmayın:** imza PIN'i, kart seri numarası, T.C. kimlik numarası, sertifika/anahtar dosyası, tam log.
+  - type: input
+    id: macos
+    attributes:
+      label: macOS sürümü
+      placeholder: "Örn. macOS 15.3 (Sequoia)"
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Mac modeli ve çip
+      placeholder: "Örn. MacBook Air M2 / Mac mini M4"
+    validations:
+      required: true
+  - type: input
+    id: appver
+    attributes:
+      label: Uygulama sürümü
+      placeholder: "Örn. 2026.10.19 veya Release etiketi"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Kurulum modu
+      options:
+        - "Normal (uhap.com.tr)"
+        - "CMK (cmk.uhap.com.tr)"
+    validations:
+      required: true
+  - type: textarea
+    id: driver
+    attributes:
+      label: Sürücü ve mimari kontrolü
+      description: Çıktıyı kart bilgisi olmadan yapıştırın.
+      value: |
+        ```bash
+        uname -m
+        lipo -archs /usr/local/lib/libakisp11.dylib
+        lsof -nP -iTCP:8080 -sTCP:LISTEN
+        ```
+      render: shell
+  - type: textarea
+    id: steps
+    attributes:
+      label: Adımlar, beklenen ve gerçek sonuç
+      placeholder: "1. ... 2. ... Beklenen: ... Gerçek: ..."
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Hata metni
+      description: Tam log yerine ilgili satırları ekleyin; kart/PIN bilgisi varsa çıkarın.
+      render: shell
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Onay
+      options:
+        - label: PIN, kart seri numarası, T.C. kimlik numarası veya anahtar paylaşmadım.
+          required: true
+        - label: README'deki ilk kurulum ve sürücü adımlarını denedim.
+          required: true
