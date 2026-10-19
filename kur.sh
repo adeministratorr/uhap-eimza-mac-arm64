@@ -22,7 +22,7 @@ if ! xcode-select -p >/dev/null 2>&1; then
 fi
 
 # 3) Repo kökünü bul; `curl | bash` ile çalıştırıldıysa repoyu klonla/güncelle
-REPO_URL="https://github.com/saidsurucu/uhap-eimza-mac-arm64.git"
+REPO_URL="https://github.com/adeministratorr/uhap-eimza-mac-arm64.git"
 CLONE_DIR="$HOME/uhap-eimza-mac-arm64"
 if [ -f "./Makefile" ] && [ -d "./app" ]; then
   REPO_ROOT="$(pwd)"                                   # repo kökünden çalıştırıldı

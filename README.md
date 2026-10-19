@@ -48,7 +48,7 @@ UHAP e-imza aracının (ARDGRUP/ImzaTek tabanlı) Apple Silicon Mac'ler için
 Terminale şunu yapıştırın:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/saidsurucu/uhap-eimza-mac-arm64/main/kur.sh | bash
+curl -fsSL https://raw.githubusercontent.com/adeministratorr/uhap-eimza-mac-arm64/main/kur.sh | bash
 ```
 
 Bu betik sırayla: Xcode Command Line Tools'u (gerekirse) kurar, depoyu
@@ -81,7 +81,7 @@ arm64 paketini kurun.
 
 ## Kullanım
 
-1. **UHAP İmzalama**'yı açın (arka planda `localhost:8080`'de çalışır).
+1. **UHAP İmzalama**'yı açın (arka planda yalnızca bu Mac'te `localhost:8080`'de çalışır).
 2. Tarayıcıda https://uhap.com.tr açıp imzalama akışını başlatın.
 3. Kart PIN'inizi girin; belge imzalanır.
 
@@ -128,7 +128,7 @@ doğrulanmıştır — bkz. `docs/VERIFICATION.md`.
 ## Elle derleme
 
 ```bash
-git clone https://github.com/saidsurucu/uhap-eimza-mac-arm64.git
+git clone https://github.com/adeministratorr/uhap-eimza-mac-arm64.git
 cd uhap-eimza-mac-arm64
 make app        # sadece .app'i derle (build/UHAPImza.app)
 make dmg        # sürükle-bırak disk imajı
@@ -138,7 +138,7 @@ make install    # /Applications'a kur
 
 ## Sorun giderme
 
-- **Gatekeeper "açılamıyor":** Uygulamaya sağ tık → **Aç** (ad-hoc imzalı).
+- **Gatekeeper uyarısı:** DMG sürümü Apple tarafından notarize edilmiştir ve normal açılır; kaynaktan derlediğiniz `.app` ad-hoc imzalıdır — nadiren gerekirse sağ tık → **Aç**.
 - **8080 meşgul:** Portu kullanan başka uygulamayı kapatın (port sabittir).
 - **"kütüphane yüklenemedi" / kart okunmuyor:** AKİS **arm64** sürücüsünü kurun.
 - **Sertifika doğrulama hatası:** Uygulama `depo.kamusm.gov.tr`'ye erişir;
@@ -147,11 +147,11 @@ make install    # /Applications'a kur
 ## Bilinen sınırlar
 
 - Yalnızca **arm64** (Apple Silicon); Intel desteklenmez.
-- **Notarize edilmemiştir** (ad-hoc imza; ilk açılışta sağ tık → Aç).
+- **Notarize edilmiştir:** Yayınlanan DMG Apple notarizasyonundan geçer; kaynaktan derlenen `.app` ad-hoc imzalıdır.
 - Görünür (visible) PDF imzası test edilmemiştir; kaynak uygulamada bu yol
   Windows'a özgü bir dosya yolu içerir (görünmez imza test edilen yoldur).
 - Kart tipi: **AKİS**. Diğer token'lar test edilmemiştir.
-- Yerel sunucu tüm arayüzlerde (`*:8080`) dinler; yerel ağdan erişilebilir.
+- Yerel sunucu yalnızca bu Mac'e bağlanır (`127.0.0.1:8080`); yerel ağdaki diğer cihazlar erişemez.
 
 ## Sorumluluk reddi
 

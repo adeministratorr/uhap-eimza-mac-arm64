@@ -55,6 +55,11 @@ PYEOF
   : "${PATCH_VISIBLE_SIG:=1}"
 fi
 
+# 2d) Yerel imza servisi yalnızca 127.0.0.1'e bağlansın (yerel ağa açılmasın).
+# ArdHttpServer kurucusunda new InetSocketAddress(PORT) çağrısını
+# InetAddress.getLoopbackAddress() alan varyanta çevirir (her iki MODE için).
+python3 -I "$ROOT/scripts/patch-loopback-bind.py" "$DST/Ard.ESignature.jar"
+
 # 3) (opsiyonel) görünür imza yolundaki ölü Windows yazımını kaldır
 if [ "${PATCH_VISIBLE_SIG:-0}" = "1" ]; then
   "$ROOT/scripts/patch-visible-signature.sh"
