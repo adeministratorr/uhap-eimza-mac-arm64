@@ -1,3 +1,5 @@
+![UHAP E-İmza — macOS UHAP/CMK imzalama](assets/social-preview.jpg)
+
 # UHAP İmzalama — macOS Apple Silicon kurulumu
 
 > **Kısa yanıt:** uhap.com.tr (ve CMK görevlendirmeleri için cmk.uhap.com.tr) üzerinden e-imza ile işlem yapmak istiyor ancak aracın Mac sürümü yok mu? Bu proje, UHAP imzalama aracını **MacBook, MacBook Pro, MacBook Air, Mac mini ve iMac**'de (Apple Silicon / M serisi / ARM tabanlı işlemci) native `.app` olarak çalıştırır: gömülü arm64 Java 11, Rosetta veya ayrı Java gerekmez. **Gayriresmî topluluk portudur; UHAP/ARDGRUP tarafından onaylanmamıştır.**
