@@ -1,10 +1,12 @@
-![UHAP E-İmza — macOS UHAP/CMK imzalama](assets/social-preview.jpg)
+![Mac’te UHAP ve CMK E-İmza Kurulumu — Baro İmzalama Aracı](assets/social-preview.jpg)
 
-# UHAP İmzalama — macOS Apple Silicon kurulumu
+# Mac’te UHAP ve CMK E-İmza Kurulumu — Baro İmzalama Aracı
 
 > **Kısa yanıt:** uhap.com.tr (ve CMK görevlendirmeleri için cmk.uhap.com.tr) üzerinden e-imza ile işlem yapmak istiyor ancak aracın Mac sürümü yok mu? Bu proje, UHAP imzalama aracını **MacBook, MacBook Pro, MacBook Air, Mac mini ve iMac**'de (Apple Silicon / M serisi / ARM tabanlı işlemci) native `.app` olarak çalıştırır: gömülü arm64 Java 11, Rosetta veya ayrı Java gerekmez. **Gayriresmî topluluk portudur; UHAP/ARDGRUP tarafından onaylanmamıştır.**
 >
 > **Hangi kurulum?** uhap.com.tr için varsayılan sürüm; **CMK** (`cmk.uhap.com.tr`) için `MODE=cmk` ile derlenen sürüm gerekir (aşağıda).
+
+**Ayrıntılı Türkçe anlatım:** [Mac’te e-imza ve UYAP kurulumu, ilk kullanım ve hata çözümleri](https://ademyuce.tr/macos-eimza-uyap/).
 
 ## İlk kez kuranlar için
 
@@ -28,6 +30,8 @@
 - **MacBook / MacBook Pro / MacBook Air / iMac / Mac mini'de çalışır mı?** Evet — Apple Silicon (M1/M2/M3/M4 ve sonrası). Intel desteklenmez.
 - **Rosetta veya Java kurmam gerekir mi?** Hayır; ARM native (arm64), Java gömülü.
 - **İmza için ek olarak ne gerekir?** e-imza kartı + kart okuyucu + **arm64 AKİS sürücüsü** (yukarıda).
+- **CMK görevlendirmesi için normal UHAP uygulaması yeterli mi?** Her zaman değil. CMK ayrı yapılandırma gerektirir; `MODE=cmk` kurulumunu izleyin.
+- **Yerel UHAP imza servisi ağdaki başka bilgisayarlara açık mı?** Güncel sürümde servis yalnızca `127.0.0.1` üzerinde dinleyecek şekilde sınırlandırılmıştır; yine de kullandığınız sürümde doğrulayın.
 
 ## Neden Mac'te çalışmıyordu? Nasıl çözdük?
 
