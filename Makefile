@@ -97,9 +97,9 @@ endif
 
 sign-devid: ## Developer ID + hardened runtime imzala (önce: make app)
 	@test -d "$(APP)" || { echo ">> .app yok — önce: make app"; exit 1; }
-	@for f in $$(find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) 2>/dev/null); do file "$$f" | grep -q 'Mach-O' && codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f"; done
-	@codesign --force --sign "$(IDENTITY)" --options runtime --timestamp --entitlements "$(ENT)" "$(APP)"
-	@codesign --verify --deep --strict "$(APP)" && echo ">> Developer ID imzası geçerli"
+	@N=0; for f in $$(find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) 2>/dev/null); do file "$$f" | grep -q 'Mach-O' || continue; N=$$((N+1)); codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f" || exit 9; done; echo ">> iç Mach-O imza sayısı: $$N"
+	@codesign --force --sign "$(IDENTITY)" --options runtime --timestamp --entitlements "$(ENT)" "$(APP)" || exit 3
+	@codesign --verify --deep --strict "$(APP)" || exit 4 ; echo ">> Developer ID imzası geçerli"
 
 notarize-app: sign-devid ## notarytool submit + wait + staple (.app)
 	@ditto -c -k --keepParent "$(APP)" $(BUILD)/notary-upload.zip
