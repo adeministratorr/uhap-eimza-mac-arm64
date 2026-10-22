@@ -58,7 +58,7 @@ prep:
 app: jre prep
 	@RUNTIME="$(RUNTIME)" JPACKAGE="$(JPACKAGE)" ./scripts/build-app.sh
 
-.PHONY: dmg run install clean
+.PHONY: dmg run install clean sign-devid notarize-app notarize-dmg notary-setup
 dmg: app
 	@rm -f $(BUILD)/$(APPNAME).dmg
 	@rm -rf $(BUILD)/dmgroot && mkdir -p $(BUILD)/dmgroot
@@ -81,3 +81,38 @@ install: app
 clean:
 	@rm -rf $(BUILD)
 	@echo ">> temizlendi (build/). .jre-cache korunur."
+
+# ---------- Developer ID imzası + Apple notarizasyonu ----------
+IDENTITY ?= Developer ID Application: ADEM YUCE (99QB736768)
+APP := $(BUILD)/$(APPNAME).app
+ENT := scripts/entitlements-jvm.plist
+NOTARY_PROFILE ?= eimza-notch
+DMG_FILE ?= $(BUILD)/$(APPNAME).dmg
+
+ifeq ($(strip $(APPLE_API_KEY_ID)$(APPLE_API_ISSUER_ID)),)
+NOTARY_ARGS := --keychain-profile "$(NOTARY_PROFILE)"
+else
+NOTARY_ARGS := --key "$(HOME)/private_keys/AuthKey_$(APPLE_API_KEY_ID).p8" --key-id "$(APPLE_API_KEY_ID)" --issuer "$(APPLE_API_ISSUER_ID)"
+endif
+
+sign-devid: ## Developer ID + hardened runtime imzala (önce: make app)
+	@test -d "$(APP)" || { echo ">> .app yok — önce: make app"; exit 1; }
+	@codesign --force --deep --sign "$(IDENTITY)" --options runtime "$(APP)"
+	@codesign --force --sign "$(IDENTITY)" --options runtime --entitlements "$(ENT)" "$(APP)"
+	@codesign --verify --deep --strict "$(APP)" && echo ">> Developer ID imzası geçerli"
+
+notarize-app: sign-devid ## notarytool submit + wait + staple (.app)
+	@ditto -c -k --keepParent "$(APP)" $(BUILD)/notary-upload.zip
+	@xcrun notarytool submit $(BUILD)/notary-upload.zip $(NOTARY_ARGS) --wait; st=$$?; rm -f $(BUILD)/notary-upload.zip; exit $$st
+	@xcrun stapler staple "$(APP)"
+	@xcrun stapler validate "$(APP)"
+
+notarize-dmg: ## DMG'yi notarize et + staple (DMG_FILE=... set edilmeli)
+	@test -n "$(DMG_FILE)" && test -f "$(DMG_FILE)" || { echo ">> DMG yok: DMG_FILE=... verin (önce: make dmg)"; exit 1; }
+	@xcrun notarytool submit "$(DMG_FILE)" $(NOTARY_ARGS) --wait
+	@xcrun stapler staple "$(DMG_FILE)"
+	@xcrun stapler validate "$(DMG_FILE)"
+
+notary-setup: ## yerel keychain notarytool profili (interaktif, bir kez)
+	@echo "örnek: xcrun notarytool store-credentials $(NOTARY_PROFILE) --apple-id <ADRES> --team-id 99QB736768"
+	@echo "(şifre: account.apple.com -> Uygulamaya Ozel Sifre)"
