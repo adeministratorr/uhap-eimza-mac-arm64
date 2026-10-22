@@ -97,7 +97,7 @@ endif
 
 sign-devid: ## Developer ID + hardened runtime imzala (önce: make app)
 	@test -d "$(APP)" || { echo ">> .app yok — önce: make app"; exit 1; }
-	@find "$(APP)" -type f \( -path '*/Contents/runtime/*' -o -name '*.dylib' -o -name '*.jnilib' \) -exec codesign --force --options runtime --timestamp --sign "$(IDENTITY)" {} +
+	@for f in $$(find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) 2>/dev/null); do file "$$f" | grep -q 'Mach-O' && codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f"; done
 	@codesign --force --sign "$(IDENTITY)" --options runtime --timestamp --entitlements "$(ENT)" "$(APP)"
 	@codesign --verify --deep --strict "$(APP)" && echo ">> Developer ID imzası geçerli"
 
