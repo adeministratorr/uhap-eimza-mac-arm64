@@ -97,7 +97,9 @@ endif
 
 sign-devid: ## Developer ID + hardened runtime imzala (önce: make app)
 	@test -d "$(APP)" || { echo ">> .app yok — önce: make app"; exit 1; }
-	@N=0; for f in $$(find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) 2>/dev/null); do file "$$f" | grep -q 'Mach-O' || continue; N=$$((N+1)); codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f" || exit 9; done; echo ">> iç Mach-O imza sayısı: $$N"
+	@find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) > build/.macho-list
+	@N2=0; NM=$$(wc -l < build/.macho-list | tr -d ' '); while IFS= read -r f; do file "$$f" | grep -q 'Mach-O' || continue; codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f" || exit 9; N2=$$((N2+1)); done < build/.macho-list; rm -f build/.macho-list; echo ">> iç Mach-O imza: $$N2/$$NM"
+	@find "$(APP)" \( -path '*/Home/bin/*' -o -name jspawnhelper \) -type f -print0 | xargs -0 -I{} codesign --force --options runtime --timestamp --entitlements "$(ENT)" --sign "$(IDENTITY)" "{}" || exit 3
 	@codesign --force --sign "$(IDENTITY)" --options runtime --timestamp --entitlements "$(ENT)" "$(APP)" || exit 3
 	@codesign --verify --deep --strict "$(APP)" || exit 4 ; echo ">> Developer ID imzası geçerli"
 
