@@ -37,14 +37,23 @@ if not os.path.isdir(root):
 
 
 def is_macho(path):
-    # 0xCAFEBABE hem fat-binary hem Java class magic olduğundan byte-magic
-    # kullanmak yerine `file` mime'ı ile ayrım yapılıyor.
+    # Hem mime hem magic kontrolü: eski universal (ppc/ppc64 + i386/x64) dosyaların
+    # mime'ı bazı file sürümlerinde x-mach-binary dışına da düşüyor; Java .class dosyası
+    # ile paylaşılan 0xCAFEBABE magic'i SADECE .class uzantısız dosyada Mach-O sayılıyor.
     r = subprocess.run(
         ["file", "--brief", "--mime-type", path],
         capture_output=True, text=True,
     )
-    mime = r.stdout.strip()
-    return mime in ("application/x-mach-binary", "application/x-pie-executable")
+    if r.stdout.strip() in ("application/x-mach-binary", "application/x-pie-executable"):
+        return True
+    try:
+        with open(path, "rb") as f:
+            head = f.read(4)
+    except OSError:
+        return False
+    if head == b"\xca\xfe\xba\xbe" and path.endswith(".class"):
+        return False          # Java class (fat-binary magic'ini paylaşır)
+    return head in MACHO_MAGICS
 
 
 def sign_macho(path):
