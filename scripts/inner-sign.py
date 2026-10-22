@@ -83,6 +83,11 @@ def process_jar(jar):
                         continue
                 if is_macho(p):
                     sign_macho(p)
+        # zip mevcut arşive EKLEME yapar; imzalı yeni girdi aynı path için arşivde
+        # ikinci defa görünür ve unzip/JVM tarayıcılar İLK (eski/imsız) girdiyi alır.
+        # O yüzden önce eski jar silinir.
+        if os.path.exists(jar):
+            os.remove(jar)
         r2 = subprocess.run(
             ["zip", "-qr", jar, "."], cwd=tmp,
             stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
