@@ -99,9 +99,10 @@ sign-devid: ## Developer ID + hardened runtime imzala (önce: make app)
 	@test -d "$(APP)" || { echo ">> .app yok — önce: make app"; exit 1; }
 	@[ "build/.signed" -nt "$(APP)" ] && echo ">> Developer ID zaten imzalı (stamp güncel) — atlandı" && exit 0 || true
 	@abs=$$(cd "$(APP)/Contents/app" && pwd); tmp=$$(mktemp -d); for jar in "$$abs"/*.jar; do [ -e "$$jar" ] || continue; rm -rf "$$tmp/jc"; unzip -q "$$jar" -d "$$tmp/jc"; (cd "$$tmp/jc" && find . -type f \( -name '*.dylib' -o -name '*.jnilib' \) | while IFS= read -r f; do file "$$f" | grep -q 'Mach-O' || continue; codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f" || exit 9; done); rm -f "$$jar"; (cd "$$tmp/jc" && zip -qr "$$jar" .) || exit 11; done; rm -rf "$$tmp"; echo ">> jar-içi native imzalandı"
-	@find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) > build/.macho-list
+	@find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) | grep -v 'Contents/runtime/Contents/MacOS/' > build/.macho-list
 	@N2=0; NM=$$(wc -l < build/.macho-list | tr -d ' '); while IFS= read -r f; do file "$$f" | grep -q 'Mach-O' || continue; codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f" || exit 9; N2=$$((N2+1)); done < build/.macho-list; rm -f build/.macho-list; echo ">> iç Mach-O imza: $$N2/$$NM"
 	@find "$(APP)" \( -path '*/Home/bin/*' -o -name jspawnhelper \) -type f -print0 | xargs -0 -I{} codesign --force --options runtime --timestamp --entitlements "$(ENT)" --sign "$(IDENTITY)" "{}" || exit 3
+	@codesign --force --sign "$(IDENTITY)" --options runtime --timestamp "$(APP)/Contents/runtime" || exit 5
 	@codesign --force --sign "$(IDENTITY)" --options runtime --timestamp --entitlements "$(ENT)" "$(APP)" || exit 3
 	@codesign --verify --deep --strict "$(APP)" || exit 4 ; echo ">> Developer ID imzası geçerli"
 	@touch build/.signed
