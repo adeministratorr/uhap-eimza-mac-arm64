@@ -23,7 +23,7 @@ MACHO_MAGICS = {
     b"\xca\xfe\xba\xbe",  # Fat (universal) binary
 }
 
-app = sys.argv[1]
+app = os.path.abspath(sys.argv[1])
 identity = sys.argv[2]
 
 if not os.path.isdir(app):
@@ -62,6 +62,7 @@ def sign_macho(path):
 
 
 def process_jar(jar):
+    jar = os.path.abspath(jar)
     tmp = tempfile.mkdtemp()
     try:
         r = subprocess.run(
