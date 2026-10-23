@@ -1,27 +1,29 @@
 #!/usr/bin/env python3
-"""Jar-içi ve nested-jar-içi native imzalama helper'ı.
+"""Jar-içi ve nested-jar-içi native imzalama helper'ı (bellek-içi zipfile).
 
 Kullanım: python3 scripts/inner-sign.py <APP> <IDENTITY>
-- Contents/app altındaki her .jar'ın içini açar
+- Contents/app altındaki her .jar zipfile ile okunur (diskte AÇILMAZ)
 - Mach-O magic'e sahip TÜM dosyaları (.dylib/.jnilib ve uzantısız da dahil) Developer ID ile
   hardened-runtime + secure timestamp imzalar
 - jar içindeki .jar'lara DAHIL girer (jna/sqlite-jdbc gibi nested jar'lar)
-- imza sonrası jar'ları orijinal konuma geri zip'ler
+- macOS harf-duyarsız FS'te obfuscate çakışmalarından kaçınmak için extract yok;
+  yeni arşiv temp dosyaya yazılır ve os.replace ile orijinal yerine geçer
+  (duplicate entry korunur — ilk-gelen kazanır)
 Hata olursa process exit 9 — make bunu yakalar.
 """
+import io
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 
-MACHO_MAGICS = {
-    b"\xfe\xed\xfa\xce",  # Mach-O 32 bit  BE
-    b"\xfe\xed\xfa\xcf",  # Mach-O 64-bit BE
-    b"\xce\xfa\xed\xfe",  # Mach-O 32 bit LE
-    b"\xcf\xfa\xed\xfe",  # Mach-O 64-bit LE
-    b"\xca\xfe\xba\xbe",  # Fat (universal) binary
-}
+MACHO_LE32 = b"\xce\xfa\xed\xfe"   # x86/i386/aarch64 LE
+MACHO_LE64 = b"\xcf\xfa\xed\xfe"
+MACHO_BE32 = b"\xfe\xed\xfa\xce"
+MACHO_BE64 = b"\xfe\xed\xfa\xcf"
+FAT_MAGIC = b"\xca\xfe\xba\xbe"
 
 app = os.path.abspath(sys.argv[1])
 identity = sys.argv[2]
@@ -35,77 +37,97 @@ if not os.path.isdir(root):
     print(f">> inner-sign: /Contents/app bulunamadı: {app}", file=sys.stderr)
     sys.exit(1)
 
+_signed = 0
+_nested = 0
 
-def is_macho(path):
-    # Hem mime hem magic kontrolü: eski universal (ppc/ppc64 + i386/x64) dosyaların
-    # mime'ı bazı file sürümlerinde x-mach-binary dışına da düşüyor; Java .class dosyası
-    # ile paylaşılan 0xCAFEBABE magic'i SADECE .class uzantısız dosyada Mach-O sayılıyor.
-    r = subprocess.run(
-        ["file", "--brief", "--mime-type", path],
-        capture_output=True, text=True,
-    )
-    if r.stdout.strip() in ("application/x-mach-binary", "application/x-pie-executable"):
-        return True
-    try:
-        with open(path, "rb") as f:
-            head = f.read(4)
-    except OSError:
+
+def is_macho_bytes(raw):
+    """0xCAFEBABE hem Java class hem universal-binary magic'i. Fat header'dan
+    hemen sonra 4 bayt = slice SAYISI (1..15); Java class'ta o alan
+    minor/major version'dur (>=45). count>15 => java.class, imzalanmaz."""
+    if len(raw) < 8:
         return False
-    if head == b"\xca\xfe\xba\xbe" and path.endswith(".class"):
-        return False          # Java class (fat-binary magic'ini paylaşır)
-    return head in MACHO_MAGICS
+    m = raw[:4]
+    if m == FAT_MAGIC:
+        count = int.from_bytes(raw[4:8], "big")
+        return 1 <= count <= 15
+    return m in (MACHO_LE32, MACHO_LE64, MACHO_BE32, MACHO_BE64)
 
 
-def sign_macho(path):
-    r = subprocess.run(
-        [
-            "codesign", "--force", "--options", "runtime",
-            "--timestamp", "--sign", identity, path,
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.STDOUT,
-    )
-    if r.returncode != 0:
-        print(f">> inner-sign: codesign BAŞARISIZ: {path}", file=sys.stderr)
-        sys.exit(9)
+def sign_macho_bytes(raw, tmpdir, label):
+    """raw baytları geçici dosyaya yazıp codesign'dan geçirir, imzalı baytları döner."""
+    fd, path = tempfile.mkstemp(dir=tmpdir)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(raw)
+        r = subprocess.run(
+            ["codesign", "--force", "--options", "runtime",
+             "--timestamp", "--sign", identity, path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+        )
+        if r.returncode != 0:
+            print(f">> inner-sign: codesign BAŞARISIZ: {label}", file=sys.stderr)
+            sys.exit(9)
+        with open(path, "rb") as f:
+            return f.read()
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+def process_jar_bytes(raw, tmpdir, label, depth=0):
+    """Bir jar'ın bayt dizisini imzalar → yeni bayt dizisi. Duplicate entry'ler
+    (merged jar'da ilk-gelen-kazanır) sırasıyla korunur."""
+    if depth >= 4:
+        return raw
+    global _signed, _nested
+    with zipfile.ZipFile(io.BytesIO(raw)) as zin:
+        infos = zin.infolist()
+        datas = [zin.read(i) for i in infos]
+    out = []
+    for info, data in zip(infos, datas):
+        name = info.filename
+        if name.endswith(".jar") and data[:4] == b"PK\x03\x04":
+            data = process_jar_bytes(data, tmpdir, f"{label}!{name}", depth + 1)
+            _nested += 1
+        elif not name.endswith("/") and is_macho_bytes(data):
+            data = sign_macho_bytes(data, tmpdir, f"{label}!{name}")
+            _signed += 1
+        out.append((info, data))
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zout:
+        for info, data in out:
+            zi = zipfile.ZipInfo(info.filename, date_time=info.date_time)
+            zi.compress_type = info.compress_type
+            zi.external_attr = info.external_attr
+            zout.writestr(zi, data)
+    return buf.getvalue()
 
 
 def process_jar(jar):
     jar = os.path.abspath(jar)
-    tmp = tempfile.mkdtemp()
+    tmpdir = tempfile.mkdtemp()
     try:
-        r = subprocess.run(
-            ["unzip", "-q", jar, "-d", tmp],
-            stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
-        )
-        if r.returncode != 0:
-            print(f">> inner-sign: unzip BAŞARISIZ: {jar}", file=sys.stderr)
+        try:
+            with open(jar, "rb") as f:
+                original = f.read()
+        except OSError as e:
+            print(f">> inner-sign: okunamadı {jar}: {e}", file=sys.stderr)
             sys.exit(12)
-        for d, dirs, files in os.walk(tmp):
-            for name in files:
-                p = os.path.join(d, name)
-                if name.endswith(".jar"):
-                    with open(p, "rb") as fh:
-                        head = fh.read(4)
-                    if head == b"PK\x03\x04":
-                        process_jar(p)  # nested jar — recursif işle
-                        continue
-                if is_macho(p):
-                    sign_macho(p)
-        # zip mevcut arşive EKLEME yapar; imzalı yeni girdi aynı path için arşivde
-        # ikinci defa görünür ve unzip/JVM tarayıcılar İLK (eski/imsız) girdiyi alır.
-        # O yüzden önce eski jar silinir.
-        if os.path.exists(jar):
-            os.remove(jar)
-        r2 = subprocess.run(
-            ["zip", "-qr", jar, "."], cwd=tmp,
-            stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
-        )
-        if r2.returncode != 0:
-            print(f">> inner-sign: zip BAŞARISIZ: {jar}", file=sys.stderr)
-            sys.exit(11)
+        try:
+            new = process_jar_bytes(original, tmpdir, os.path.basename(jar))
+        except zipfile.BadZipFile as e:
+            print(f">> inner-sign: BADZIP {jar}: {e}", file=sys.stderr)
+            sys.exit(12)
+        fd, tmpzip = tempfile.mkstemp(dir=os.path.dirname(jar), suffix=".jar.new")
+        with os.fdopen(fd, "wb") as f:
+            f.write(new)
+        os.replace(tmpzip, jar)
     finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 top = []
@@ -120,4 +142,4 @@ if not top:
 
 for jar in top:
     process_jar(jar)
-print(">> inner-sign tamam (nested jar'lar dahil)")
+print(f">> inner-sign tamam: {_signed} Mach-O imzalandı, {_nested} nested jar işlendi")
