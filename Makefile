@@ -59,7 +59,11 @@ app: jre prep
 	@RUNTIME="$(RUNTIME)" JPACKAGE="$(JPACKAGE)" ./scripts/build-app.sh
 
 .PHONY: dmg run install clean sign-devid notarize-app notarize-dmg notary-setup
-dmg: app
+# DİKKAT: dmg kasıtlı olarak 'app' bağımlılığı DEĞİL — make app ad-hoc yeniden imza
+# atıp notarize edilmiş .app'in Developer ID imzasını SILER. Sıralama:
+# make app && make notarize-app && make dmg && make notarize-dmg DMG_FILE=...
+dmg:
+	@test -d "$(BUILD)/$(APPNAME).app" || { echo ">> .app yok — önce: make app (notarize: make notarize-app)"; exit 1; }
 	@rm -f $(BUILD)/$(APPNAME).dmg
 	@rm -rf $(BUILD)/dmgroot && mkdir -p $(BUILD)/dmgroot
 	@cp -R $(BUILD)/$(APPNAME).app $(BUILD)/dmgroot/
