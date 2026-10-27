@@ -101,7 +101,6 @@ endif
 
 sign-devid: ## Developer ID + hardened runtime imzala (önce: make app)
 	@test -d "$(APP)" || { echo ">> .app yok — önce: make app"; exit 1; }
-	@[ "build/.signed" -nt "$(APP)" ] && echo ">> Developer ID zaten imzalı (stamp güncel) — atlandı" && exit 0 || true
 	@./scripts/inner-sign.py "$(APP)" "$(IDENTITY)"
 	@find "$(APP)/Contents" -type f \( -name '*.dylib' -o -name '*.jnilib' -o -name '*.jspawnhelper' -o -path '*/MacOS/*' -o -path '*/Home/bin/*' \) | grep -v 'Contents/runtime/Contents/MacOS/' > build/.macho-list
 	@N2=0; NM=$$(wc -l < build/.macho-list | tr -d ' '); while IFS= read -r f; do file "$$f" | grep -q 'Mach-O' || continue; codesign --force --options runtime --timestamp --sign "$(IDENTITY)" "$$f" || exit 9; N2=$$((N2+1)); done < build/.macho-list; rm -f build/.macho-list; echo ">> iç Mach-O imza: $$N2/$$NM"
